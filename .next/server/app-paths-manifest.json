@@ -1,0 +1,7 @@
+{
+  "/page": "app/page.js",
+  "/cyberstalking/page": "app/cyberstalking/page.js",
+  "/evidence/page": "app/evidence/page.js",
+  "/legal-assistant/page": "app/legal-assistant/page.js",
+  "/instagram-sim/page": "app/instagram-sim/page.js"
+}
