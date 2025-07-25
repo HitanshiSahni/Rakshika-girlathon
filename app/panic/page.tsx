@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -7,12 +6,32 @@ import { authService } from '../../lib/auth';
 import { alertService } from '../../lib/alertService';
 import { useRouter } from 'next/navigation';
 
+interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  priority: string;
+}
+
+interface User {
+  name: string;
+  email: string;
+  emergencyContacts: EmergencyContact[];
+}
+
+interface AlertResult {
+  name: string;
+  email?: { success: boolean; error?: string };
+  sms?: { success: boolean; error?: string };
+}
+
 export default function PanicPage() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isActivated, setIsActivated] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [alertSent, setAlertSent] = useState(false);
-  const [alertResults, setAlertResults] = useState([]);
+  const [alertResults, setAlertResults] = useState<AlertResult[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,12 +61,16 @@ export default function PanicPage() {
 
   const sendEmergencyAlert = async () => {
     try {
-      const result = await alertService.sendEmergencyAlert(user.email, 'panic', {
-        location: await getCurrentLocation(),
-        timestamp: new Date().toISOString(),
-        message: 'Panic button activated - immediate assistance needed'
-      });
-      
+      if (!user) return;
+
+const result = await alertService.sendEmergencyAlert(user, 'panic', {
+
+          location: await getCurrentLocation(),
+          timestamp: new Date().toISOString(),
+          message: 'Panic button activated - immediate assistance needed',
+        }
+      );
+
       setAlertResults(result.results || []);
       setAlertSent(true);
     } catch (error) {
@@ -133,7 +156,7 @@ export default function PanicPage() {
               </button>
             </div>
 
-            {/* Trusted Contacts */}
+            {/* Emergency Contacts */}
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 mb-6 border border-red-100">
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <i className="ri-contacts-line text-red-500 mr-2"></i>
@@ -141,7 +164,7 @@ export default function PanicPage() {
               </h3>
               {user.emergencyContacts?.length > 0 ? (
                 <div className="space-y-3">
-                  {user.emergencyContacts.slice(0, 3).map((contact, index) => (
+                  {user.emergencyContacts.slice(0, 3).map((contact: EmergencyContact, index: number) => (
                     <div key={contact.id} className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-rose-400 rounded-full flex items-center justify-center">
                         <span className="text-white text-sm font-bold">{contact.priority}</span>
@@ -211,30 +234,34 @@ export default function PanicPage() {
               </div>
               <h2 className="text-2xl font-bold text-green-600 mb-2">Alert Sent!</h2>
               <p className="text-gray-600 text-sm mb-6">Your trusted contacts have been notified</p>
-              
+
               <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 mb-6 border border-green-100">
                 <h4 className="font-medium text-gray-800 mb-3">Alert Status</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span>SMS Alerts</span>
-                    <span className="text-green-600">✓ Sent ({alertResults.filter(r => r.sms?.success).length})</span>
+                    <span className="text-green-600">
+                      ✓ Sent ({alertResults.filter((r) => r.sms?.success).length})
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Email Alerts</span>
-                    <span className="text-green-600">✓ Sent ({alertResults.filter(r => r.email?.success).length})</span>
+                    <span className="text-green-600">
+                      ✓ Sent ({alertResults.filter((r) => r.email?.success).length})
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Location Shared</span>
                     <span className="text-green-600">✓ Active</span>
                   </div>
                 </div>
-                
+
                 {alertResults.length > 0 && (
                   <div className="mt-4">
                     <h5 className="text-xs font-medium text-gray-700 mb-2">Contacts Notified:</h5>
                     {alertResults.map((result, index) => (
                       <div key={index} className="text-xs text-gray-600">
-                        • {result.name} {result.error ? '(Failed)' : '(Success)'}
+                        • {result.name} {result.email?.error || result.sms?.error ? '(Failed)' : '(Success)'}
                       </div>
                     ))}
                   </div>
