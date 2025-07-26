@@ -19,28 +19,23 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(bytes);
 
   try {
-    const uploadResult = await new Promise((resolve, reject) => {
-   const stream = cloudinary.uploader.upload_stream(
-  {
-    folder: 'rakshika-evidence',
-    use_filename: true,
-    unique_filename: false,
-    resource_type: 'auto' // ✅ Add this line here
-  },
-  (error, result) => {
-    if (error) reject(error);
-    else resolve(result);
-  }
-);
+  console.log('Starting upload...');
+  const uploadResult = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'rakshika-evidence', use_filename: true, unique_filename: false },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
 
+  console.log('✅ Upload result:', uploadResult);
+  return NextResponse.json({ success: true, url: (uploadResult as any).secure_url });
 
-      streamifier.createReadStream(buffer).pipe(stream);
-    });
-
-    console.log('✅ Uploaded to Cloudinary:', uploadResult);
-    return NextResponse.json({ success: true, url: (uploadResult as any).secure_url });
-  } catch (error: any) {
-    console.error('❌ Upload failed:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Unknown error' }, { status: 500 });
-  }
+} catch (error: any) {
+  console.error('❌ Upload failed:', error);
+  return NextResponse.json({ success: false, error: error.message });
+}
 }
