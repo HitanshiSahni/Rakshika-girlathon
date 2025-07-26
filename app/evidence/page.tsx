@@ -5,7 +5,12 @@ import { useState } from 'react';
 
 export default function EvidencePage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
-  
+  const [file, setFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [uploading, setUploading] = useState(false);
+
+
   const evidenceItems = [
     {
       id: 1,
@@ -57,27 +62,71 @@ export default function EvidencePage() {
     }
   ];
 
-  const filteredEvidence = selectedCategory === 'all' 
-    ? evidenceItems 
-    : evidenceItems.filter(item => item.category === selectedCategory);
+  const filteredEvidence =
+    selectedCategory === 'all'
+      ? evidenceItems
+      : evidenceItems.filter((item) => item.category === selectedCategory);
 
-  const getTypeIcon = (type) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'Screenshot': return 'ri-image-line';
-      case 'Email': return 'ri-mail-line';
-      case 'Report': return 'ri-file-text-line';
-      default: return 'ri-file-line';
+      case 'Screenshot':
+        return 'ri-image-line';
+      case 'Email':
+        return 'ri-mail-line';
+      case 'Report':
+        return 'ri-file-text-line';
+      default:
+        return 'ri-file-line';
     }
   };
 
-  const getTypeColor = (type) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Screenshot': return 'bg-blue-100 text-blue-600';
-      case 'Email': return 'bg-green-100 text-green-600';
-      case 'Report': return 'bg-purple-100 text-purple-600';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'Screenshot':
+        return 'bg-blue-100 text-blue-600';
+      case 'Email':
+        return 'bg-green-100 text-green-600';
+      case 'Report':
+        return 'bg-purple-100 text-purple-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
     }
   };
+
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  setUploading(true);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('userEmail', 'demo@rakshika.com'); // dummy for now
+  formData.append('category', selectedCategory);
+  formData.append('title', file.name);
+  formData.append('tags', JSON.stringify(['urgent', 'proof'])); // demo tags
+
+  try {
+    const res = await fetch('/api/evidence/1upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert('✅ Upload successful!');
+    } else {
+      alert(`Upload failed: ${data.error}`);
+    }
+  } catch (err) {
+    console.error('⚠️ Upload error:', err);
+    alert('Error uploading file.');
+  } finally {
+    setUploading(false);
+  }
+};
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
@@ -89,9 +138,7 @@ export default function EvidencePage() {
             <span className="font-medium text-gray-700">Back</span>
           </Link>
           <h1 className="text-lg font-bold text-blue-600">Evidence Locker</h1>
-          <button className="w-8 h-8 flex items-center justify-center">
-            <i className="ri-add-line text-xl text-gray-700"></i>
-          </button>
+          <div className="w-8 h-8"></div>
         </div>
       </nav>
 
@@ -108,7 +155,7 @@ export default function EvidencePage() {
               <span className="text-xs text-green-600">Encrypted</span>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-lg font-bold text-blue-600">4</div>
@@ -127,46 +174,21 @@ export default function EvidencePage() {
 
         {/* Category Filter */}
         <div className="flex space-x-2 mb-6 overflow-x-auto">
-          <button 
-            onClick={() => setSelectedCategory('all')}
-            className={`!rounded-button px-4 py-2 text-sm font-medium whitespace-nowrap ${
-              selectedCategory === 'all' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white/70 text-gray-600 border border-gray-200'
-            }`}
-          >
-            All Evidence
-          </button>
-          <button 
-            onClick={() => setSelectedCategory('threat')}
-            className={`!rounded-button px-4 py-2 text-sm font-medium whitespace-nowrap ${
-              selectedCategory === 'threat' 
-                ? 'bg-red-500 text-white' 
-                : 'bg-white/70 text-gray-600 border border-gray-200'
-            }`}
-          >
-            Threats
-          </button>
-          <button 
-            onClick={() => setSelectedCategory('cyberstalking')}
-            className={`!rounded-button px-4 py-2 text-sm font-medium whitespace-nowrap ${
-              selectedCategory === 'cyberstalking' 
-                ? 'bg-purple-500 text-white' 
-                : 'bg-white/70 text-gray-600 border border-gray-200'
-            }`}
-          >
-            Cyberstalking
-          </button>
-          <button 
-            onClick={() => setSelectedCategory('legal')}
-            className={`!rounded-button px-4 py-2 text-sm font-medium whitespace-nowrap ${
-              selectedCategory === 'legal' 
-                ? 'bg-green-500 text-white' 
-                : 'bg-white/70 text-gray-600 border border-gray-200'
-            }`}
-          >
-            Legal Docs
-          </button>
+          {['all', 'threat', 'cyberstalking', 'legal'].map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`!rounded-button px-4 py-2 text-sm font-medium whitespace-nowrap ${
+                selectedCategory === category
+                  ? `bg-${category === 'legal' ? 'green' : category === 'cyberstalking' ? 'purple' : category === 'threat' ? 'red' : 'blue'}-500 text-white`
+                  : 'bg-white/70 text-gray-600 border border-gray-200'
+              }`}
+            >
+              {category === 'all'
+                ? 'All Evidence'
+                : category.charAt(0).toUpperCase() + category.slice(1)}
+            </button>
+          ))}
         </div>
 
         {/* Evidence List */}
@@ -177,19 +199,17 @@ export default function EvidencePage() {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getTypeColor(item.type)}`}>
                   <i className={`${getTypeIcon(item.type)} text-lg`}></i>
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-medium text-gray-800 text-sm truncate">{item.title}</h3>
-                    {item.encrypted && (
-                      <i className="ri-lock-line text-green-500 text-sm ml-2"></i>
-                    )}
+                    {item.encrypted && <i className="ri-lock-line text-green-500 text-sm ml-2"></i>}
                   </div>
-                  
+
                   <div className="text-xs text-gray-600 mb-2">
                     <span>{item.source}</span> • <span>{item.date} {item.time}</span> • <span>{item.size}</span>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-1 mb-3">
                     {item.tags.map((tag, index) => (
                       <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
@@ -197,17 +217,11 @@ export default function EvidencePage() {
                       </span>
                     ))}
                   </div>
-                  
+
                   <div className="flex space-x-2">
-                    <button className="!rounded-button bg-blue-500 text-white px-3 py-1 text-xs">
-                      View
-                    </button>
-                    <button className="!rounded-button bg-green-500 text-white px-3 py-1 text-xs">
-                      Share
-                    </button>
-                    <button className="!rounded-button bg-purple-500 text-white px-3 py-1 text-xs">
-                      Report
-                    </button>
+                    <button className="!rounded-button bg-blue-500 text-white px-3 py-1 text-xs">View</button>
+                    <button className="!rounded-button bg-green-500 text-white px-3 py-1 text-xs">Share</button>
+                    <button className="!rounded-button bg-purple-500 text-white px-3 py-1 text-xs">Report</button>
                   </div>
                 </div>
               </div>
@@ -215,19 +229,21 @@ export default function EvidencePage() {
           ))}
         </div>
 
-        {/* Quick Actions */}
+        {/* Upload Evidence Button */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <button className="!rounded-button bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 text-center">
             <i className="ri-camera-line text-2xl mb-2"></i>
             <div className="text-sm font-medium">Take Screenshot</div>
           </button>
-          <button className="!rounded-button bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
+
+          <label className="!rounded-button bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center cursor-pointer">
             <i className="ri-file-add-line text-2xl mb-2"></i>
-            <div className="text-sm font-medium">Upload Evidence</div>
-          </button>
+            <div className="text-sm font-medium">{uploading ? 'Uploading...' : 'Upload Evidence'}</div>
+            <input type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="hidden" />
+          </label>
         </div>
 
-        {/* Auto-Report Generator */}
+        {/* AI Report Generator */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-green-100">
           <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
             <i className="ri-robot-line text-green-500 mr-2"></i>
@@ -237,12 +253,8 @@ export default function EvidencePage() {
             Generate professional reports for police, platform complaints, or legal proceedings using your stored evidence.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <button className="!rounded-button bg-red-500 text-white px-4 py-2 text-sm">
-              Police Report
-            </button>
-            <button className="!rounded-button bg-blue-500 text-white px-4 py-2 text-sm">
-              Platform Report
-            </button>
+            <button className="!rounded-button bg-red-500 text-white px-4 py-2 text-sm">Police Report</button>
+            <button className="!rounded-button bg-blue-500 text-white px-4 py-2 text-sm">Platform Report</button>
           </div>
         </div>
       </div>
